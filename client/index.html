@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat — Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <h1 class="auth-title">Group Chat</h1>
+            <p class="auth-subtitle">Masuk untuk mulai mengobrol</p>
+
+            <!-- Error msg -->
+            <div id="error-message" class="error-message hidden"></div>
+
+            <!-- Form Login -->
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        placeholder="Masukkan username"
+                        autocomplete="username"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        placeholder="Masukkan password"
+                        autocomplete="current-password"
+                        required
+                    >
+                </div>
+                <button type="submit" id="login-btn" class="btn-primary">
+                    Masuk
+                </button>
+            </form>
+
+            <p class="auth-footer">
+                Belum punya akun? 
+                <a href="#" id="show-register">Daftar di sini</a>
+            </p>
+
+            <!-- Form Register (tersembunyi awalnya) -->
+            <form id="register-form" class="hidden">
+                <div class="form-group">
+                    <label for="reg-username">Username</label>
+                    <input 
+                        type="text" 
+                        id="reg-username" 
+                        placeholder="Pilih username"
+                        required
+                    >
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input 
+                        type="password" 
+                        id="reg-password" 
+                        placeholder="Buat password"
+                        required
+                    >
+                </div>
+                <button type="submit" id="register-btn" class="btn-primary">
+                    Daftar
+                </button>
+            </form>
+
+            <p id="show-login-text" class="auth-footer hidden">
+                Sudah punya akun? 
+                <a href="#" id="show-login">Masuk di sini</a>
+            </p>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+</body>
+</html>
