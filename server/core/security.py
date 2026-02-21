@@ -9,6 +9,8 @@ pwd_context = CryptContext(
     deprecated=["bcrypt"],
 )
 
+# set of inactive tokens; used for logout mechanism
+token_blacklist = set()
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -32,3 +34,9 @@ def decode_access_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+    
+def blacklist_token(token: str):
+    token_blacklist.add(token)
+
+def is_token_blacklisted(token: str) -> bool:
+    return token in token_blacklist
