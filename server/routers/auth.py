@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from core.database import get_db
-from schemas.auth import RegisterRequest, UserResponse
-from services.auth_service import create_user
+from schemas.auth import RegisterRequest, UserResponse, LoginRequest, TokenResponse
+from services.auth_service import create_user, login_user
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -12,3 +12,13 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
     if user is None:
         raise HTTPException(status_code=400, detail="Username already exists")
     return user
+    
+@router.post("/login", response_model=TokenResponse)
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    token = login_user(db, request.username, request.password)
+    if token is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Username or password is incorrect"
+        )
+    return TokenResponse(access_token=token)
