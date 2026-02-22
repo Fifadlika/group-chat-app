@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.database import engine, Base
 import models.user
+import models.message
 from routers import auth, chat
 
 Base.metadata.create_all(bind=engine)

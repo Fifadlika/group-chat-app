@@ -1,8 +1,30 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
+from sqlalchemy.orm import Session
+from core.database import get_db
+from core.dependencies import verify_websocket_token, get_current_user
 from services.chat_service import manager
-from core.dependencies import verify_websocket_token
+from services.message_service import save_message, get_recent_messages
 
 router = APIRouter()
+
+@router.get("/messages")
+def get_messages(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    REST endpoint to retrieve chat history.
+    """
+    messages = get_recent_messages(db)
+    return [
+        {
+            "type": "message",
+            "username": msg.username,
+            "message": msg.content,
+            "timestamp": msg.timestamp.strftime("%H:%M")
+        }
+        for msg in messages
+    ]
 
 @router.websocket("/ws/chat")
 async def websocket_endpoint(websocket: WebSocket):
