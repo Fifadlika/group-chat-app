@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, WebSocket
 from fastapi.security import OAuth2PasswordBearer
 from core.security import decode_access_token, is_token_blacklisted
 
@@ -19,3 +19,31 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         )
     
     return payload
+
+async def verify_websocket_token(websocket: WebSocket) -> str | None:
+    """
+    Retrieve and verify JWT token from WebSocket query parameter.
+    
+    Client connects to : ws://localhost:8000/ws/chat?token=<jwt_token>
+    """
+    token = websocket.query_params.get("token")
+
+    if not token:
+        await websocket.close(code=1008)  # 1008 = Policy Violation
+        return None
+
+    if is_token_blacklisted(token):
+        await websocket.close(code=1008)
+        return None
+
+    payload = decode_access_token(token)
+    if payload is None:
+        await websocket.close(code=1008)
+        return None
+
+    username = payload.get("sub")
+    if not username:
+        await websocket.close(code=1008)
+        return None
+
+    return username
