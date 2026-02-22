@@ -1,5 +1,6 @@
 from fastapi import WebSocket
 from typing import Dict
+from datetime import datetime, timezone
 
 class ConnectionManager:
     def __init__(self):
@@ -15,6 +16,13 @@ class ConnectionManager:
         if username in self.active_connections:
             del self.active_connections[username]
             print(f"[-] {username} disconnected. Total: {len(self.active_connections)} user")
+
+    def get_timestamp(self) -> str:
+        now = datetime.now(timezone.utc)
+        return now.strftime("%H:%M")
+
+    def get_online_users(self) -> list:
+        return list(self.active_connections.keys())
 
     async def broadcast(self, message: dict, sender: str):
         disconnected = []

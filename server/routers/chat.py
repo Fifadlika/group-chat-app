@@ -16,25 +16,39 @@ async def websocket_endpoint(websocket: WebSocket):
 
     await manager.connect(websocket, username)
 
+    await manager.send_to_user(username, {
+        "type": "online_users",
+        "users": manager.get_online_users(),
+        "timestamp": manager.get_timestamp(),
+    })
+
     await manager.broadcast({
         "type": "system",
+        "username": "System",
         "message": f"{username} has joined the chat",
-        "username": "System"
+        "timestamp":manager.get_timestamp(),
     }, sender=username)
 
     try:
         while True:
             data = await websocket.receive_json()
+            message_text = data.get("message", "").strip()           
+            
+            if not message_text:
+                continue
+
             await manager.broadcast({
                 "type": "message",
                 "username": username,
                 "message": data.get("message", ""),
+                "timestamp": manager.get_timestamp(),
             }, sender=username)
 
     except WebSocketDisconnect:
         manager.disconnect(username)
         await manager.broadcast({
             "type": "system",
+            "username": "System",
             "message": f"{username} has left the chat",
-            "username": "System"
+            "timestamp": manager.get_timestamp(),
         }, sender=username)

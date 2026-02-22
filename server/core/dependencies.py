@@ -29,7 +29,7 @@ async def verify_websocket_token(websocket: WebSocket) -> str | None:
     token = websocket.query_params.get("token")
 
     if not token:
-        await websocket.close(code=1008)  # 1008 = Policy Violation
+        await websocket.close(code=1008)
         return None
 
     if is_token_blacklisted(token):
