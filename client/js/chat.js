@@ -1,11 +1,10 @@
 const API_BASE = "http://localhost:8000";
 const WS_BASE = "ws://localhost:8000";
 
-// ===== state =====
 let socket = null;
 let currentUsername = null;
 
-// ===== token management =====
+// ===== token =====
 
 function getToken() {
     return localStorage.getItem("access_token");
@@ -15,65 +14,126 @@ function removeToken() {
     localStorage.removeItem("access_token");
 }
 
-// ===== check for auth via token =====
-
 function checkAuth() {
-    const token = getToken();
-    if (!token) {
+    if (!getToken()) {
         window.location.href = "index.html";
         return false;
     }
     return true;
 }
 
-// ===== decode uname from token =====
-// JWT consists of header.payload.signature
-
-
 function getUsernameFromToken() {
-    const token = getToken();
-    if (!token) return null;
-
     try {
-        const payload = token.split(".")[1];
-
-        const decoded = JSON.parse(atob(payload));
-
-        return decoded.sub;
+        const payload = getToken().split(".")[1];
+        return JSON.parse(atob(payload)).sub;
     } catch (e) {
-        console.error("Gagal decode token:", e);
         return null;
     }
 }
 
-// ===== ws connection =====
+// ===== ui helpers =====
+
+function updateConnectionStatus(isConnected) {
+    const el = document.getElementById("connection-status");
+    if (isConnected) {
+        el.textContent = "● Connected";
+        el.className = "status-connected";
+        document.getElementById("message-input").disabled = false;
+        document.getElementById("send-btn").disabled = false;
+    } else {
+        el.textContent = "● Disconnected";
+        el.className = "status-disconnected";
+        document.getElementById("message-input").disabled = true;
+        document.getElementById("send-btn").disabled = true;
+    }
+}
+
+function updateOnlineUsers(users) {
+    const list = document.getElementById("online-users-list");
+    list.innerHTML = "";
+    users.forEach((username) => {
+        const li = document.createElement("li");
+        li.textContent = username === currentUsername
+            ? `${username} (You)`
+            : username;
+        list.appendChild(li);
+    });
+}
+
+function scrollToBottom() {
+    const container = document.getElementById("messages-container");
+    container.scrollTop = container.scrollHeight;
+}
+
+// ===== render message =====
+
+function renderMessage(data) {
+    const container = document.getElementById("messages-container");
+    
+    const placeholder = container.querySelector(".messages-placeholder");
+    if (placeholder) placeholder.remove();
+
+    if (data.type === "system") {
+        const div = document.createElement("div");
+        div.className = "system-message";
+        div.textContent = data.message;
+        container.appendChild(div);
+
+    } else if (data.type === "message") {
+        const isOwn = data.username === currentUsername;
+
+        const bubble = document.createElement("div");
+        bubble.className = `message-bubble ${isOwn ? "own" : "other"}`;
+
+        // Meta: sender + timestamp
+        const meta = document.createElement("div");
+        meta.className = "message-meta";
+        meta.innerHTML = isOwn
+            ? `<span>${data.timestamp}</span>`
+            : `<span>${data.username}</span><span>${data.timestamp}</span>`;
+
+        // content
+        const content = document.createElement("div");
+        content.className = "message-content";
+        content.textContent = data.message;
+
+        bubble.appendChild(meta);
+        bubble.appendChild(content);
+        container.appendChild(bubble);
+    }
+
+    scrollToBottom();
+}
+
+// ===== ws =====
 
 function connectWebSocket() {
     const token = getToken();
-
     socket = new WebSocket(`${WS_BASE}/ws/chat?token=${token}`);
 
     socket.onopen = () => {
-        console.log("WebSocket terhubung!");
+        console.log("WebSocket connected.");
         updateConnectionStatus(true);
     };
 
     socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        handleIncomingMessage(data);
+
+        if (data.type === "online_users") {
+            updateOnlineUsers(data.users);
+            return;
+        }
+
+        renderMessage(data);
     };
 
     socket.onclose = (event) => {
-        console.log("WebSocket terputus, kode:", event.code);
         updateConnectionStatus(false);
-
         if (event.code === 1008) {
             logout();
             return;
         }
-
         if (event.code !== 1000) {
-            console.log("Mencoba reconnect dalam 3 detik...");
             setTimeout(connectWebSocket, 3000);
         }
     };
@@ -83,58 +143,37 @@ function connectWebSocket() {
     };
 }
 
-// ===== message handler =====
+// ===== send =====
 
-function handleIncomingMessage(data) {
-    switch (data.type) {
-        case "message":
-            // implemented later
-            console.log(`[${data.timestamp}] ${data.username}: ${data.message}`);
-            break;
+function sendMessage() {
+    const input = document.getElementById("message-input");
+    const text = input.value.trim();
 
-        case "system":
-            // implemented later
-            console.log(`[${data.timestamp}] *** ${data.message} ***`);
-            break;
+    if (!text || !socket || socket.readyState !== WebSocket.OPEN) return;
 
-        case "online_users":
-            // implemented later
-            console.log("Online:", data.users);
-            break;
-
-        default:
-            console.log("Tipe pesan tidak dikenal:", data);
-    }
+    socket.send(JSON.stringify({ message: text }));
+    input.value = ""; 
+    input.focus();
 }
 
-// ===== sending message =====
+// ===== event listeners =====
 
-function sendMessage(messageText) {
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-        console.error("WebSocket tidak terhubung");
-        return false;
+document.getElementById("send-btn").addEventListener("click", sendMessage);
+
+// send by enter
+document.getElementById("message-input").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
     }
+});
 
-    if (!messageText.trim()) {
-        return false;
-    }
-
-    socket.send(JSON.stringify({ message: messageText }));
-    return true;
-}
-
-// ===== conn status update =====
-// implemented later
-
-function updateConnectionStatus(isConnected) {
-    console.log("Status koneksi:", isConnected ? "Terhubung" : "Terputus");
-}
+document.getElementById("logout-btn").addEventListener("click", logout);
 
 // ===== logout =====
 
 async function logout() {
     const token = getToken();
-
     if (token) {
         try {
             await fetch(`${API_BASE}/auth/logout`, {
@@ -142,7 +181,7 @@ async function logout() {
                 headers: { Authorization: `Bearer ${token}` },
             });
         } catch (e) {
-            console.error("Logout request gagal:", e);
+            console.error("Logout request failed:", e);
         }
     }
 
@@ -165,7 +204,8 @@ function init() {
         return;
     }
 
-    console.log("Login sebagai:", currentUsername);
+    document.getElementById("current-user").textContent = currentUsername;
+
     connectWebSocket();
 }
 
