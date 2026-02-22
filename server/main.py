@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from core.database import engine, Base
 import models.user
 from routers import auth
@@ -6,6 +7,15 @@ from routers import auth
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Group Chat App")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # pls specify on prod
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+
+)
 
 app.include_router(auth.router)
 

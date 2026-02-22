@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Group Chat</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div style="display:flex; justify-content:center; align-items:center; height:100vh;">
+        <div style="text-align:center;">
+            <h2 style="color:#0167ff;">You're logged in</h2>
+            <p style="color:#6b7280; margin-top:8px;">
+                Stay tuned! We're building something great.
+            </p>
+            <button 
+                onclick="localStorage.removeItem('access_token'); window.location.href='index.html'"
+                style="margin-top:20px; padding:10px 20px; background:#0167ff; color:white; border:none; border-radius:8px; cursor:pointer;">
+                Logout
+            </button>
+        </div>
+    </div>
+    <script src="js/auth.js"></script>
+</body>
+</html>
