@@ -141,7 +141,7 @@ body {
 /* ===== SIDEBAR ===== */
 .sidebar {
     width: 240px;
-    background: #1e1b4b;
+    background: #29292a;
     color: white;
     display: flex;
     flex-direction: column;

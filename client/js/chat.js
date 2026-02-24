@@ -3,6 +3,8 @@ const WS_BASE = "ws://localhost:8000";
 
 let socket = null;
 let currentUsername = null;
+let historyLoaded = false;
+let pendingMessages = [];
 
 // ===== token =====
 
@@ -105,22 +107,76 @@ function renderMessage(data) {
     scrollToBottom();
 }
 
+// ==== load chat history =====
+
+async function loadChatHistory() {
+    const token = getToken();
+
+    try {
+        const response = await fetch(`${API_BASE}/messages`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+
+        if (response.status == 401) {
+            logout();
+            return;
+        }
+
+        if (!response.ok) {
+            console.error("Failed to load message history");
+            return;
+        }
+
+        const messages = await response.json();
+        const container = document.getElementById("messages-container");
+        container.innerHTML = "";
+
+        if (messages.length === 0) {
+            container.innerHTML = `
+                <p class="message-placeholder">
+                No message yet. Start a conversation.
+                </p>`
+            ;
+        } else {
+            messages.forEach(renderMessage);
+        }
+        
+        historyLoaded = true;
+
+        pendingMessages.forEach(renderMessage);
+        pendingMessages = [];
+
+        scrollToBottom();
+    
+    } catch (error) {
+        console.error("Error when loading history:", error)
+        historyLoaded = true;
+    }
+}
+
 // ===== ws =====
 
 function connectWebSocket() {
     const token = getToken();
     socket = new WebSocket(`${WS_BASE}/ws/chat?token=${token}`);
 
-    socket.onopen = () => {
+    socket.onopen = async () => {
         console.log("WebSocket connected.");
         updateConnectionStatus(true);
+        await loadChatHistory();
     };
 
     socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
-
         if (data.type === "online_users") {
             updateOnlineUsers(data.users);
+            return;
+        }
+
+        if (!historyLoaded) {
+            pendingMessages.push(data);
             return;
         }
 
@@ -129,6 +185,9 @@ function connectWebSocket() {
 
     socket.onclose = (event) => {
         updateConnectionStatus(false);
+        historyLoaded = false;
+        pendingMessages = [];
+
         if (event.code === 1008) {
             logout();
             return;
