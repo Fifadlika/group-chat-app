@@ -25,9 +25,9 @@ def get_messages(
         }
         for msg in messages
     ]
-
+## don't forget to inject the db in order to retrieve the chat history
 @router.websocket("/ws/chat")
-async def websocket_endpoint(websocket: WebSocket):
+async def websocket_endpoint(websocket: WebSocket,  db: Session = Depends(get_db)):
     """
     JWT-protected WebSocket endpoint.
     Client connects to: ws://localhost:8000/ws/chat?token=<jwt_token>
@@ -58,6 +58,9 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if not message_text:
                 continue
+
+            # make sure db is saved
+            save_message(db, username, message_text)
 
             await manager.broadcast({
                 "type": "message",
